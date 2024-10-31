@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Kontaktliste</h2>
+<!-- Flash-Nachrichten anzeigen -->
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+<!-- Suchfeld -->
+<form method="get" action="{{ url_for('get_contacts') }}" class="mb-4">
+    <div class="input-group">
+        <input type="text" name="search" class="form-control" placeholder="Suche nach Name, Telefon, E-Mail oder Adresse" value="{{ search_query }}">
+        <button class="btn btn-primary" type="submit">Suchen</button>
+    </div>
+</form>
+
+<table class="table table-striped mt-4">
+    <thead>
+        <tr>
+            <!-- Sortierlinks für die Spalten -->
+            <th><a href="{{ url_for('get_contacts', sort_by='id', sort_order='desc' if sort_by == 'id' and sort_order == 'asc' else 'asc') }}">ID {% if sort_by == 'id' %}{{ '▼' if sort_order == 'asc' else '▲' }}{% endif %}</a></th>
+            <th><a href="{{ url_for('get_contacts', sort_by='name', sort_order='desc' if sort_by == 'name' and sort_order == 'asc' else 'asc') }}">Name {% if sort_by == 'name' %}{{ '▼' if sort_order == 'asc' else '▲' }}{% endif %}</a></th>
+            <th><a href="{{ url_for('get_contacts', sort_by='email', sort_order='desc' if sort_by == 'email' and sort_order == 'asc' else 'asc') }}">E-Mail {% if sort_by == 'email' %}{{ '▼' if sort_order == 'asc' else '▲' }}{% endif %}</a></th>
+            <th><a href="{{ url_for('get_contacts', sort_by='phone', sort_order='desc' if sort_by == 'phone' and sort_order == 'asc' else 'asc') }}">Telefon {% if sort_by == 'phone' %}{{ '▼' if sort_order == 'asc' else '▲' }}{% endif %}</a></th>
+            <th>Adresse</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for contact in contacts %}
+        <tr>
+            <td>{{ contact.id }}</td>
+            <td>{{ highlight_search(contact.name, search_query) }}</td>
+            <td>{{ highlight_search(contact.email, search_query) }}</td>
+            <td>{{ highlight_search(contact.phone, search_query) }}</td>
+            <td>{{ highlight_search(contact.address, search_query) }}</td>
+            <td>
+                <a href="{{ url_for('edit_contact', id=contact.id) }}" class="btn btn-sm btn-warning">Bearbeiten</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    
+</table>
+
+<!-- Paginierung -->
+<!-- Paginierung -->
+<nav aria-label="Seiten">
+    <ul class="pagination">
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('get_contacts', page=page-1, sort_by=sort_by, sort_order=sort_order, search=search_query) }}" aria-label="Zurück">
+                <span aria-hidden="true">&laquo; Zurück</span>
+            </a>
+        </li>
+
+        {% for p in range(start_page, end_page + 1) %}
+        <li class="page-item {% if page == p %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('get_contacts', page=p, sort_by=sort_by, sort_order=sort_order, search=search_query) }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('get_contacts', page=page+1, sort_by=sort_by, sort_order=sort_order, search=search_query) }}" aria-label="Weiter">
+                <span aria-hidden="true">Weiter &raquo;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+
+{% endblock %}

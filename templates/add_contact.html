@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Neuen Kontakt hinzufügen</h2>
+
+{% if error_message %}
+<div class="alert alert-danger">{{ error_message }}</div>
+{% endif %}
+<div id="js-error-message" class="alert alert-danger" style="display: none;"></div>
+
+<form id="contactForm" action="/add_contact" method="POST" class="mt-4">
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" class="form-control" id="name" name="name" required maxlength="50" 
+               placeholder="Maximal 50 Zeichen" value="{{ name }}">
+    </div>
+    <div class="mb-3">
+        <label for="phone" class="form-label">Telefon</label>
+        <input type="text" class="form-control" id="phone" name="phone" maxlength="15" 
+               pattern="\+?[0-9\s\-]+" title="Bitte geben Sie eine gültige Telefonnummer ein (z.B. +49 123 456 7890)" 
+               placeholder="Maximal 15 Zeichen" value="{{ phone }}">
+        <small class="form-text text-muted">Nur Zahlen, Leerzeichen, Bindestriche oder Pluszeichen sind erlaubt.</small>
+    </div>
+    <div class="mb-3">
+        <label for="email" class="form-label">E-Mail</label>
+        <input type="email" class="form-control" id="email" name="email" required
+               placeholder="max@example.com" value="{{ email }}">
+    </div>
+    <div class="mb-3">
+        <label for="address" class="form-label">Adresse</label>
+        <textarea class="form-control" id="address" name="address" rows="3" 
+                  required placeholder="Ihre Adresse hier...">{{ address }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Kontakt hinzufügen</button>
+</form>
+
+<script>
+    document.getElementById("contactForm").addEventListener("submit", function(event) {
+        const emailField = document.getElementById("email");
+        const emailValue = emailField.value;
+        const jsErrorMessage = document.getElementById("js-error-message");
+
+        // E-Mail-Validierung mit regulärem Ausdruck
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        // Setze die Fehlermeldung zurück
+        jsErrorMessage.style.display = 'none';
+        jsErrorMessage.innerHTML = '';
+
+        if (!emailPattern.test(emailValue)) {
+            event.preventDefault(); // Verhindert das Absenden des Formulars
+            jsErrorMessage.innerHTML = "Bitte geben Sie eine gültige E-Mail-Adresse ein."; // Setze die Fehlermeldung
+            jsErrorMessage.style.display = 'block'; // Mache das Element sichtbar
+            emailField.focus(); // Setzt den Fokus auf das E-Mail-Feld
+        }
+    });
+</script>
+
+{% endblock %}

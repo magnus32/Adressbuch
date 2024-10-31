@@ -1,0 +1,6 @@
+/* style.css */
+mark {
+    padding: 0 !important; /* Entferne Padding */
+    background-color: yellow !important; /* Markiere Hintergrundfarbe */
+    color: inherit !important; /* Übernimmt die Schriftfarbe des umgebenden Textes */
+}

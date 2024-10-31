@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Kontakt bearbeiten</h2>
+
+<form method="post">
+    <div class="mb-3">
+        <label for="name" class="form-label">Names</label>
+        <input type="text" class="form-control" id="name" name="name" value="{{ contact.name }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="phone" class="form-label">Telefon</label>
+        <input type="text" class="form-control" id="phone" name="phone" value="{{ contact.phone }}" required maxlength="15">
+    </div>
+    <div class="mb-3">
+        <label for="email" class="form-label">E-Mail</label>
+        <input type="email" class="form-control" id="email" name="email" value="{{ contact.email }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="address" class="form-label">Adresse</label>
+        <input type="text" class="form-control" id="address" name="address" value="{{ contact.address }}" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
+    <a href="{{ url_for('get_contacts') }}" class="btn btn-secondary">Abbrechen</a>
+</form>
+
+{% endblock %}
