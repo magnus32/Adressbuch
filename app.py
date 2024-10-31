@@ -3,9 +3,11 @@ from markupsafe import Markup
 import pymysql
 import re
 from config import Config
+from datetime import datetime
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
 # Datenbankverbindung herstellen
 def get_db_connection():
     connection = pymysql.connect(
@@ -33,6 +35,22 @@ def highlight_search(text, search_query):
     )
     return Markup(highlighted_text)
 
+# Funktion zum Formatieren des Datums
+def format_date(value):
+    if isinstance(value, datetime):
+        return value.strftime('%d.%m.%Y')
+    return value
+
+# Funktion zum Formatieren des Datums für datetime-local Eingabefeld
+def format_datetime_local(value):
+    if isinstance(value, datetime):
+        return value.strftime('%Y-%m-%dT%H:%M')
+    return value
+
+# Filter registrieren
+app.jinja_env.filters['format_date'] = format_date
+app.jinja_env.filters['format_datetime_local'] = format_datetime_local
+
 @app.route('/add_contact', methods=['GET', 'POST'])
 def add_contact():
     if request.method == 'POST':
@@ -50,7 +68,7 @@ def add_contact():
             connection.commit()
         connection.close()
         flash("Kontakt erfolgreich hinzugefügt.")
-        return redirect(url_for('get_contacts'))
+        return redirect(url_for('get_contacts', sort_by=request.args.get('sort_by'), sort_order=request.args.get('sort_order'), search=request.args.get('search')))
     return render_template('add_contact.html', title='Neuen Kontakt hinzufügen')
 
 
@@ -66,26 +84,29 @@ def edit_contact(id):
 
         with connection.cursor() as cur:
             cur.execute(
-                "UPDATE contacts SET name=%s, phone=%s, email=%s, address=%s WHERE id=%s",# warum id = %s ???
+                "UPDATE contacts SET name=%s, phone=%s, email=%s, address=%s WHERE id=%s",
                 (name, phone, email, address, id)
             )
             connection.commit()
         connection.close()
         flash("Kontakt erfolgreich aktualisiert.")
-        return redirect(url_for('get_contacts'))
+        return redirect(url_for('get_contacts', sort_by=request.args.get('sort_by'), sort_order=request.args.get('sort_order'), search=request.args.get('search')))
     
-    # Kontakt für das Bearbeiten abrufen
     with connection.cursor() as cur:
         cur.execute("SELECT * FROM contacts WHERE id=%s", (id,))
         contact = cur.fetchone()
     connection.close()
-    
-    if contact is None:
-        flash("Kontakt nicht gefunden.")
-        return redirect(url_for('get_contacts'))
-    
-    return render_template('edit_contact.html', contact=contact, title='Kontakt bearbeiten')
+    return render_template('edit_contact.html', contact=contact, title='Kontakt bearbeiten', sort_by=request.args.get('sort_by'), sort_order=request.args.get('sort_order'), search=request.args.get('search'))
 
+@app.route('/delete_contact/<int:id>', methods=['POST'])
+def delete_contact(id):
+    connection = get_db_connection()
+    with connection.cursor() as cur:
+        cur.execute("DELETE FROM contacts WHERE id=%s", (id,))
+        connection.commit()
+    connection.close()
+    flash("Kontakt erfolgreich gelöscht.")
+    return redirect(url_for('get_contacts', sort_by=request.args.get('sort_by'), sort_order=request.args.get('sort_order'), search=request.args.get('search')))
 
 @app.route('/')
 def get_contacts():
@@ -96,12 +117,13 @@ def get_contacts():
     search_query = request.args.get('search', '').strip()
     sort_by = request.args.get('sort_by', 'id')
     sort_order = request.args.get('sort_order', 'asc')
-
-    if sort_by not in ['id', 'name', 'email', 'phone']:
+    
+    # Überprüfen, ob die Sortierparameter gültig sind
+    if sort_by not in ['id', 'name', 'email', 'phone', 'address', 'date']:
         sort_by = 'id'
     if sort_order not in ['asc', 'desc']:
         sort_order = 'asc'
-
+    
     connection = get_db_connection()
     with connection.cursor() as cur:
         base_query = "SELECT * FROM contacts"
@@ -113,21 +135,21 @@ def get_contacts():
             base_query += search_condition
             count_query += search_condition
             query_params = (search_term, search_term, search_term, search_term)
-        else: 
+        else:
             query_params = ()
-
+        
         cur.execute(count_query, query_params)
         total_contacts = cur.fetchone()['count']
         
         base_query += f" ORDER BY {sort_by} {sort_order} LIMIT %s OFFSET %s"
         cur.execute(base_query, query_params + (per_page, offset))
         contacts = cur.fetchall()
+    
     connection.close()
-
     total_pages = (total_contacts + per_page - 1) // per_page
     start_page = max(1, page - 5)
     end_page = min(start_page + 9, total_pages)
-
+    
     return render_template(
         'contacts.html',
         contacts=contacts,
@@ -138,7 +160,8 @@ def get_contacts():
         search_query=search_query,
         highlight_search=highlight_search,
         sort_by=sort_by,
-        sort_order=sort_order
+        sort_order=sort_order,
+        total_contacts=total_contacts
     )
 
 if __name__ == '__main__':
